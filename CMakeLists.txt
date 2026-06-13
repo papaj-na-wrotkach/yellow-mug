@@ -26,24 +26,30 @@ include(FetchContent)
 set(IMGUI_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/imgui)
 set(IMNODEFLOW_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/ImNodeFlow)
 
-FetchContent_Declare(imgui
+FetchContent_Declare(ImGui
 	 GIT_REPOSITORY "https://github.com/ocornut/imgui.git"
 	 GIT_TAG "docking"
 	 SOURCE_DIR ${IMGUI_DIR}
+	 GIT_SHALLOW TRUE
 )
 
 FetchContent_Declare(ImNodeFlow
 	 GIT_REPOSITORY "https://github.com/Fattorino/ImNodeFlow.git"
 	 GIT_TAG "master"
 	 SOURCE_DIR ${IMNODEFLOW_DIR}
+	 GIT_SHALLOW TRUE
 )
 
 set(NAME yellow-mug)
 
 project(${NAME} LANGUAGES C CXX)
 
+# For Doxygen
+set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+set(CMAKE_C_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES})
+
 # ImGui
-FetchContent_MakeAvailable(imgui)
+FetchContent_MakeAvailable(ImGui)
 
 # ImGui::Core
 add_library(imgui_core STATIC
@@ -53,7 +59,7 @@ add_library(imgui_core STATIC
 	${IMGUI_DIR}/imgui_widgets.cpp
 	${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp
 )
-target_include_directories(imgui_core PUBLIC ${IMGUI_DIR})
+target_include_directories(imgui_core PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/misc/cpp/)
 add_library(ImGui::Core ALIAS imgui_core)
 
 # ImGui::GLFW
@@ -84,13 +90,45 @@ add_library(ImNodeFlow::ImNodeFlow ALIAS imnodeflow)
 # main executable
 add_executable(${NAME} src/main.cpp)
 target_sources(${NAME}
-    PUBLIC
-    FILE_SET CXX_MODULES FILES
-    src/app.ixx
+	PUBLIC
+	FILE_SET CXX_MODULES FILES
+		src/app.ixx
+		src/core.ixx
+		src/core/frame.ixx
 )
-target_link_libraries(${NAME} PRIVATE
-	ImGui::Core
-	ImGui::GLFW
-	ImGui::OpenGL3
-	ImNodeFlow::ImNodeFlow
+target_include_directories(${NAME} PRIVATE ${STB_IMAGE_DIR})
+target_link_libraries(${NAME}
+	PRIVATE
+		ImGui::Core
+		ImGui::GLFW
+		ImGui::OpenGL3
+		ImNodeFlow::ImNodeFlow
+)
+
+# Doxygen documentation
+set(TAG_URL "https://upload.cppreference.com/images/f/f8/cppreference-doxygen-web.tag.xml")
+set(TAG_FILE "${CMAKE_BINARY_DIR}/cppreference-doxygen-web.tag.xml")
+
+if(NOT EXISTS "${TAG_FILE}")
+    message(STATUS "Downloading cppreference Doxygen tag file…")
+    file(DOWNLOAD "${TAG_URL}" "${TAG_FILE}" STATUS download_status)
+    list(GET download_status 0 status_code)
+    if(NOT status_code EQUAL 0)
+        message(WARNING "Failed to download tag file: ${download_status}")
+    endif()
+endif()
+set(DOXYGEN_TAGFILES "${TAG_FILE}=https://cppreference.com/w/")
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
+    @ONLY
+)
+
+find_package(Doxygen REQUIRED)
+add_custom_target(docs
+    COMMAND ${DOXYGEN_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM
 )
