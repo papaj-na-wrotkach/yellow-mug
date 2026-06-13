@@ -6,93 +6,125 @@ module;
 #include <ImNodeFlow.h>
 export module yellow_mug.app;
 import std;
+import yellow_mug.nodes;
 
 namespace yellow_mug {
-    export class App {
-    public:
-        App() {
-            init_window();
-            init_imgui();
-        }
+	export class App {
+	public:
+		App() {
+			init_window();
+			init_imgui();
+			setup_context_menu();
+		}
 
-        ~App() {
-            cleanup();
-        }
+		~App() {
+			cleanup();
+		}
 
-        void run() {
-            while (!glfwWindowShouldClose(m_window)) {
-                glfwPollEvents();
+		void run() {
+			while (!glfwWindowShouldClose(m_window)) {
+				glfwPollEvents();
 
-                // Start the Dear ImGui frame
-                ImGui_ImplOpenGL3_NewFrame();
-                ImGui_ImplGlfw_NewFrame();
-                ImGui::NewFrame();
+				// Start the Dear ImGui frame
+				ImGui_ImplOpenGL3_NewFrame();
+				ImGui_ImplGlfw_NewFrame();
+				ImGui::NewFrame();
 
-                // Enable docking
-                ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+				// Enable docking
+				ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
-                // Draw node editor window
-                ImGui::SetNextWindowSize(ImVec2(1024, 768), ImGuiCond_FirstUseEver);
-                if (ImGui::Begin("Node Editor")) {
-                    m_graph.update();
-                }
+				// Draw node editor window
+				ImGui::SetNextWindowSize(ImVec2(1024, 768), ImGuiCond_FirstUseEver);
+				if (ImGui::Begin("Node Editor")) {
+					if (ImGuiContext* inner_ctx = m_graph.getGrid().getRawContext(); inner_ctx) {
+						ImGui::SetCurrentContext(inner_ctx);
+						ImGui::GetPlatformIO() = m_context->PlatformIO;
+						ImGui::SetCurrentContext(m_context);
+					}
+					m_graph.update();
+				}
 
-                ImGui::End();
+				ImGui::End();
 
-                // Render
-                ImGui::Render();
-                int display_w, display_h;
-                glfwGetFramebufferSize(m_window, &display_w, &display_h);
-                glViewport(0, 0, display_w, display_h);
+				// Render
+				ImGui::Render();
+				int display_w, display_h;
+				glfwGetFramebufferSize(m_window, &display_w, &display_h);
+				glViewport(0, 0, display_w, display_h);
 
-                glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
-                glClear(GL_COLOR_BUFFER_BIT);
+				glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT);
 
-                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-                glfwSwapBuffers(m_window);
-            }
-        }
+				ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+				glfwSwapBuffers(m_window);
+			}
+		}
 
-    private:
-        GLFWwindow* m_window{nullptr};
-        ImFlow::ImNodeFlow m_graph;
+	private:
+		ImGuiContext* m_context{nullptr};
+		GLFWwindow* m_window{nullptr};
+		ImFlow::ImNodeFlow m_graph;
 
-        void init_window() {
-            if (!glfwInit()) {
-                throw std::runtime_error("Failed to initialize GLFW");
-            }
+		void setup_context_menu() {
+			m_graph.rightClickPopUpContent([this](ImFlow::BaseNode* node) {
+				if (node == nullptr) {
+					if (ImGui::Selectable("Source")) {
+						m_graph.placeNode<SourceProcessorNode>();
+					}
+				} else {
+					if (ImGui::Selectable("Delete Node")) {
+						if (node->isSelected()) {
+							std::ranges::for_each(
+								m_graph.getNodes()
+									| std::views::values
+									| std::views::filter(&ImFlow::BaseNode::isSelected),
+								std::bind_front(&ImFlow::BaseNode::destroy));
+						} else {
+							node->destroy();
+						}
+					}
+				}
+			});
+		}
 
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		void init_window() {
+			if (!glfwInit()) {
+				throw std::runtime_error("Failed to initialize GLFW");
+			}
 
-            m_window = glfwCreateWindow(1280, 720, "Image Filter Pipeline", nullptr, nullptr);
-            if (!m_window) {
-                glfwTerminate();
-                throw std::runtime_error("Failed to create GLFW window");
-            }
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-            glfwMakeContextCurrent(m_window);
-            glfwSwapInterval(1); // Enable vsync
-        }
+			m_window = glfwCreateWindow(1280, 720, "Image Filter Pipeline", nullptr, nullptr);
+			if (!m_window) {
+				glfwTerminate();
+				throw std::runtime_error("Failed to create GLFW window");
+			}
 
-        void init_imgui() {
-            IMGUI_CHECKVERSION();
-            ImGui::CreateContext();
-            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
-            ImGui::StyleColorsDark();
+			glfwMakeContextCurrent(m_window);
+			glfwSwapInterval(1); // Enable vsync
+		}
 
-            ImGui_ImplGlfw_InitForOpenGL(m_window, true);
-            ImGui_ImplOpenGL3_Init("#version 330");
-        }
+		void init_imgui() {
+			IMGUI_CHECKVERSION();
+			ImGui::CreateContext();
+			m_context = ImGui::GetCurrentContext();
+			ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
+			ImGui::StyleColorsDark();
 
-        void cleanup() {
-            ImGui_ImplOpenGL3_Shutdown();
-            ImGui_ImplGlfw_Shutdown();
-            ImGui::DestroyContext();
+			ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+			ImGui_ImplOpenGL3_Init("#version 330");
+		}
 
-            if (m_window) glfwDestroyWindow(m_window);
-            glfwTerminate();
-        }
-    };
+		void cleanup() {
+			ImGui_ImplOpenGL3_Shutdown();
+			ImGui_ImplGlfw_Shutdown();
+
+			ImGui::DestroyContext();
+
+			if (m_window) glfwDestroyWindow(m_window);
+			glfwTerminate();
+		}
+	};
 }

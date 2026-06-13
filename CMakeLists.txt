@@ -25,6 +25,7 @@ include(FetchContent)
 
 set(IMGUI_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/imgui)
 set(IMNODEFLOW_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/ImNodeFlow)
+set(STB_IMAGE_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/stb_image)
 
 FetchContent_Declare(ImGui
 	 GIT_REPOSITORY "https://github.com/ocornut/imgui.git"
@@ -37,6 +38,13 @@ FetchContent_Declare(ImNodeFlow
 	 GIT_REPOSITORY "https://github.com/Fattorino/ImNodeFlow.git"
 	 GIT_TAG "master"
 	 SOURCE_DIR ${IMNODEFLOW_DIR}
+	 GIT_SHALLOW TRUE
+)
+
+FetchContent_Declare(stb_image
+	 GIT_REPOSITORY "https://github.com/nothings/stb.git"
+	 GIT_TAG "master"
+	 SOURCE_DIR ${STB_IMAGE_DIR}
 	 GIT_SHALLOW TRUE
 )
 
@@ -88,13 +96,21 @@ target_link_libraries(imnodeflow PUBLIC ImGui::Core)
 add_library(ImNodeFlow::ImNodeFlow ALIAS imnodeflow)
 
 # main executable
+FetchContent_MakeAvailable(stb_image)
 add_executable(${NAME} src/main.cpp)
 target_sources(${NAME}
 	PUBLIC
 	FILE_SET CXX_MODULES FILES
 		src/app.ixx
 		src/core.ixx
+		src/nodes.ixx
+		src/processors.ixx
 		src/core/frame.ixx
+		src/nodes/processor.ixx
+		src/nodes/source.ixx
+		src/processors/processor.ixx
+		src/processors/source.ixx
+		src/utility/stb_image.ixx
 )
 target_include_directories(${NAME} PRIVATE ${STB_IMAGE_DIR})
 target_link_libraries(${NAME}
