@@ -14,10 +14,108 @@ export namespace yellow_mug
 struct Extent2D
 {
 	/// @brief Width, in pixels.
-	std::size_t width;
+	std::size_t width{0uz};
 
 	/// @brief Height, in pixels.
-	std::size_t height;
+	std::size_t height{0uz};
+
+	/**
+	 * @brief Default member-wise equality operator.
+	 *
+	 * @param other The other extent to compare against.
+	 * @return True if both width and height are equal, false otherwise.
+	 */
+	[[nodiscard]] bool operator==(const Extent2D& other) const noexcept = default;
+
+	/**
+	 * @brief Returns the total area of the extent in pixels.
+	 *
+	 * @return The product of width and height.
+	 */
+	[[nodiscard]] std::size_t area() const noexcept
+	{
+		return width * height;
+	}
+
+	/**
+	 * @brief Checks if either dimension is zero.
+	 *
+	 * @return True if width or height is zero, false otherwise.
+	 */
+	[[nodiscard]] bool empty() const noexcept
+	{
+		return !width || !height;
+	}
+
+	/**
+	 * @brief Calculates the aspect ratio of the extent.
+	 *
+	 * @return The ratio of width to height, or 0.0 if height is zero.
+	 */
+	[[nodiscard]] double aspect_ratio() const noexcept
+	{
+		return !height ? 0.0 : static_cast<double>(width) / height;
+	}
+
+	/**
+	 * @brief Component-wise addition.
+	 *
+	 * @param other The extent to add.
+	 * @return A new extent with summed dimensions.
+	 */
+	[[nodiscard]] Extent2D operator+(const Extent2D& other) const noexcept
+	{
+		return {width + other.width, height + other.height};
+	}
+
+	/**
+	 * @brief Component-wise subtraction.
+	 *
+	 * @param other The extent to subtract.
+	 * @return A new extent with subtracted dimensions.
+	 */
+	[[nodiscard]] Extent2D operator-(const Extent2D& other) const noexcept
+	{
+		return {width - other.width, height - other.height};
+	}
+
+	/**
+	 * @brief Component-wise addition compound assignment.
+	 *
+	 * @param other The extent to add.
+	 * @return A reference to this extent.
+	 */
+	Extent2D& operator+=(const Extent2D& other) & noexcept
+	{
+		width += other.width;
+		height += other.height;
+		return *this;
+	}
+
+	/**
+	 * @brief Component-wise subtraction compound assignment.
+	 *
+	 * @param other The extent to subtract.
+	 * @return A reference to this extent.
+	 */
+	Extent2D& operator-=(const Extent2D& other) & noexcept
+	{
+		width -= other.width;
+		height -= other.height;
+		return *this;
+	}
+
+	/**
+	 * @brief Stream output operator.
+	 *
+	 * @param os Output stream to write to.
+	 * @param extent Extent to format.
+	 * @return Reference to the output stream.
+	 */
+	friend std::ostream& operator<<(std::ostream& os, const Extent2D& extent)
+	{
+		return os << extent.width << "x" << extent.height;
+	}
 };
 
 /**
@@ -28,9 +126,9 @@ struct Extent2D
  * storing pixels in row-major order with four 8-bit channels per pixel
  * (red, green, blue, alpha).
  *
- * `Frame` is move-only. Copying is intentionally disabled to make
- * duplication costs visible at call sites; use `@ref Frame::clone()` to obtain
- * an explicit deep copy when one is required.
+ * The type is move-only. Copying is intentionally disabled to make
+ * duplication costs visible at call sites; use @ref clone()
+ * to obtain an explicit deep copy when one is required.
  */
 class Frame
 {
@@ -44,12 +142,12 @@ public:
 	 * @brief Constructs a frame with the given dimensions.
 	 *
 	 * @details
-	 * Allocates a pixel buffer of `dimensions.width * dimensions.height * 4`
+	 * Allocates a pixel buffer of `dimensions.area() * 4`
 	 * bytes, zero-initialised.
 	 *
 	 * @param dimensions Width and height of the frame, in pixels.
 	 */
-	explicit Frame(Extent2D dimensions) : m_extent(dimensions)
+	explicit Frame(Extent2D dimensions) : m_extent{dimensions}
 	{
 	}
 
@@ -64,20 +162,20 @@ public:
 	 *
 	 * @param dimensions Width and height of the frame, in pixels.
 	 * @param data Decoded RGBA8 pixel data, row-major, of size
-	 *             `dimensions.width * dimensions.height * 4`.
+	 *             `dimensions.area() * 4`.
 	 *
-	 * @pre `data.size() == dimensions.width * dimensions.height * 4`.
+	 * @pre `data.size() == dimensions.area() * 4`.
 	 */
 	Frame(Extent2D dimensions, std::span<const std::uint8_t> data) :
-		m_extent(dimensions),
-		m_pixels(data.begin(), data.end())
+		m_extent{dimensions},
+		m_pixels{data.begin(), data.end()}
 	{
 	}
 
-	/// @brief Copy construction is disabled; use `@ref Frame::clone()` for explicit deep copies.
+	/// @brief Copy construction is disabled; use @ref clone() for explicit deep copies.
 	Frame(const Frame&) = delete;
 
-	/// @brief Copy assignment is disabled; use `@ref Frame::clone()` for explicit deep copies.
+	/// @brief Copy assignment is disabled; use @ref clone() for explicit deep copies.
 	Frame& operator=(const Frame&) = delete;
 
 	/// @brief Move-constructs a frame, transferring ownership of the pixel buffer.
@@ -93,8 +191,7 @@ public:
 	 */
 	[[nodiscard]] Frame clone() const
 	{
-		Frame copy(m_extent, m_pixels);
-		return copy;
+		return {m_extent, m_pixels};
 	}
 
 	/**
@@ -165,7 +262,7 @@ public:
 	 * @brief Reads raw pixel data for a frame from a binary input stream.
 	 *
 	 * @details
-	 * Reads exactly `frame.dimensions().width * frame.dimensions().height * 4`
+	 * Reads exactly `frame.dimensions().area() * 4`
 	 * bytes from @p in into @p frame's pixel buffer. The frame's dimensions
 	 * must already be set by the caller before this operator is used; the
 	 * stream is expected to contain only raw, uncompressed RGBA8 pixel data
@@ -190,11 +287,9 @@ private:
 	Extent2D m_extent{0, 0};
 
 	/**
-	 * @brief Pixel storage, `width * height * 4` bytes in row-major RGBA8 order.
+	 * @brief Pixel storage, `area() * 4` bytes in row-major RGBA8 order.
 	 */
-	std::vector<std::uint8_t> m_pixels = std::vector<std::uint8_t>(
-		m_extent.width * m_extent.height * 4
-	);
+	std::vector<std::uint8_t> m_pixels = std::vector<std::uint8_t>(m_extent.area() * 4);
 };
 
 }
