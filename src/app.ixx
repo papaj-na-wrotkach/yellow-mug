@@ -71,6 +71,10 @@ namespace yellow_mug {
 					if (ImGui::Selectable("Source")) {
 						m_graph.placeNode<SourceProcessorNode>();
 					}
+					if (ImGui::Selectable("Output")) {
+						auto target = m_graph.placeNode<TargetNode>();
+						target->set_outer_context(m_context);
+					}
 				} else {
 					if (ImGui::Selectable("Delete Node")) {
 						if (node->isSelected()) {

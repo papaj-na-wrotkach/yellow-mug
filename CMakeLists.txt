@@ -25,6 +25,7 @@ include(FetchContent)
 
 set(IMGUI_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/imgui)
 set(IMNODEFLOW_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/ImNodeFlow)
+set(IMGUI_ZOOMABLE_IMAGE_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/imgui_zoomable_image)
 set(STB_IMAGE_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/stb_image)
 
 FetchContent_Declare(ImGui
@@ -38,6 +39,15 @@ FetchContent_Declare(ImNodeFlow
 	 GIT_REPOSITORY "https://github.com/Fattorino/ImNodeFlow.git"
 	 GIT_TAG "master"
 	 SOURCE_DIR ${IMNODEFLOW_DIR}
+	 GIT_SHALLOW TRUE
+)
+
+FetchContent_Declare(imgui_zoomable_image
+	 GIT_REPOSITORY "https://github.com/danielm5/imgui_zoomable_image.git"
+	 GIT_TAG "main"
+	 SOURCE_DIR ${IMGUI_ZOOMABLE_IMAGE_DIR}
+	 GIT_SUBMODULES ""
+	 SOURCE_SUBDIR  "" # do not use CMakeLists.txt from the dependency
 	 GIT_SHALLOW TRUE
 )
 
@@ -95,6 +105,13 @@ target_include_directories(imnodeflow PUBLIC
 target_link_libraries(imnodeflow PUBLIC ImGui::Core)
 add_library(ImNodeFlow::ImNodeFlow ALIAS imnodeflow)
 
+# imgui_zoomable_image
+FetchContent_MakeAvailable(imgui_zoomable_image)
+add_library(imgui_zoomable_image INTERFACE)
+target_include_directories(imgui_zoomable_image INTERFACE ${IMGUI_ZOOMABLE_IMAGE_DIR})
+target_link_libraries(imgui_zoomable_image INTERFACE ImGui::Core)
+add_library(ImGuiImage::Zoomable ALIAS imgui_zoomable_image)
+
 # main executable
 FetchContent_MakeAvailable(stb_image)
 add_executable(${NAME} src/main.cpp)
@@ -108,6 +125,7 @@ target_sources(${NAME}
 		src/core/frame.ixx
 		src/nodes/processor.ixx
 		src/nodes/source.ixx
+		src/nodes/target.ixx
 		src/processors/processor.ixx
 		src/processors/source.ixx
 		src/utility/stb_image.ixx
@@ -119,6 +137,7 @@ target_link_libraries(${NAME}
 		ImGui::GLFW
 		ImGui::OpenGL3
 		ImNodeFlow::ImNodeFlow
+		ImGuiImage::Zoomable
 )
 
 # Doxygen documentation
