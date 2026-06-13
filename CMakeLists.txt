@@ -127,6 +127,8 @@ target_sources(${NAME}
 		src/nodes/processor.ixx
 		src/nodes/source.ixx
 		src/nodes/target.ixx
+		src/nodes/blur.ixx
+		src/processors/blur.ixx
 		src/processors/invert.ixx
 		src/processors/processor.ixx
 		src/processors/source.ixx
