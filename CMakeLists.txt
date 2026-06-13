@@ -123,9 +123,11 @@ target_sources(${NAME}
 		src/nodes.ixx
 		src/processors.ixx
 		src/core/frame.ixx
+		src/nodes/invert.ixx
 		src/nodes/processor.ixx
 		src/nodes/source.ixx
 		src/nodes/target.ixx
+		src/processors/invert.ixx
 		src/processors/processor.ixx
 		src/processors/source.ixx
 		src/utility/stb_image.ixx

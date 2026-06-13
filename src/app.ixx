@@ -71,6 +71,9 @@ namespace yellow_mug {
 					if (ImGui::Selectable("Source")) {
 						m_graph.placeNode<SourceProcessorNode>();
 					}
+					if (ImGui::Selectable("Invert")) {
+						m_graph.placeNode<InvertProcessorNode>();
+					}
 					if (ImGui::Selectable("Output")) {
 						auto target = m_graph.placeNode<TargetNode>();
 						target->set_outer_context(m_context);
