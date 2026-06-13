@@ -77,6 +77,9 @@ namespace yellow_mug {
 					if (ImGui::Selectable("Blur")) {
 						m_graph.placeNode<BlurProcessorNode>();
 					}
+					if (ImGui::Selectable("Mask")) {
+						m_graph.placeNode<MaskBlendProcessorNode>();
+					}
 					if (ImGui::Selectable("Output")) {
 						auto target = m_graph.placeNode<TargetNode>();
 						target->set_outer_context(m_context);

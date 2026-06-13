@@ -128,8 +128,10 @@ target_sources(${NAME}
 		src/nodes/source.ixx
 		src/nodes/target.ixx
 		src/nodes/blur.ixx
+		src/nodes/mask_blend.ixx
 		src/processors/blur.ixx
 		src/processors/invert.ixx
+		src/processors/mask_blend.ixx
 		src/processors/processor.ixx
 		src/processors/source.ixx
 		src/utility/stb_image.ixx
