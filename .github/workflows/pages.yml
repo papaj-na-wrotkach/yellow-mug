@@ -1,0 +1,49 @@
+name: Deploy Doxygen to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y doxygen graphviz ninja-build xorg-dev libwayland-dev libwayland-bin wayland-protocols libxkbcommon-dev clang-18 libc++-18-dev libc++abi-18-dev
+        
+      - name: Configure CMake
+        run: cmake --preset release -B build -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_CXX_FLAGS="-stdlib=libc++"
+        
+      - name: Build docs
+        run: cmake --build build --target docs
+        
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload the generated HTML docs folder
+          path: 'build/docs/html'
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
