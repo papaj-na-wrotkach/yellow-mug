@@ -110,7 +110,7 @@ private:
 	std::shared_ptr<const Frame> m_displayed{nullptr};
 
 	/// @brief Zoom and pan state used by @ref imgui_zoomable_image.
-	ImGuiImage::State m_zoom_state;
+	ImGuiImage::State m_zoom_state{ .maintainAspectRatio = true };
 
 	/// @brief Controls whether the separate image viewer window is open.
 	bool m_viewer_open{false};
@@ -396,7 +396,7 @@ void TargetNode::draw_viewer()
 				bool user_maintain = m_zoom_state.maintainAspectRatio;
 				m_zoom_state.maintainAspectRatio = false;
 
-				// Workaround. Uses default values in 7-parameter function, as the 5-parameter one simply ignores uv0 and uv1.
+				// Workaround. Uses default values in the 7-parameter function, as the 5-parameter one simply ignores uv0 and uv1.
 				ImGuiImage::Zoomable(
 					static_cast<ImTextureID>(m_texture_id),
 					display_size,

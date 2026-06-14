@@ -71,6 +71,9 @@ namespace yellow_mug {
 					if (ImGui::Selectable("Blur")) {
 						m_graph.placeNode<BlurProcessorNode>();
 					}
+					if (ImGui::Selectable("Crop")) {
+						m_graph.placeNode<CropProcessorNode>();
+					}
 					if (ImGui::Selectable("Grayscale")) {
 						m_graph.placeNode<GrayscaleProcessorNode>();
 					}

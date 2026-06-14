@@ -128,9 +128,11 @@ target_sources(${NAME}
 		src/nodes/source.ixx
 		src/nodes/target.ixx
 		src/nodes/blur.ixx
+		src/nodes/crop.ixx
 		src/nodes/grayscale.ixx
 		src/nodes/mask_blend.ixx
 		src/processors/blur.ixx
+		src/processors/crop.ixx
 		src/processors/grayscale.ixx
 		src/processors/invert.ixx
 		src/processors/mask_blend.ixx
