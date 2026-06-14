@@ -59,7 +59,7 @@ public:
 	 *
 	 * @details
 	 * Renders a dockable floating window. Uses @ref imgui_zoomable_image for
-	 * pan and zoom controls, and overlays the frame on an aligned GPU checkerboard.
+	 * pan and zoom controls and overlays the frame on an aligned GPU checkerboard.
 	 */
 	void draw_viewer();
 
@@ -107,7 +107,7 @@ private:
 	 * @details
 	 * Holds `nullptr` until a successful pipeline evaluation occurs.
 	 */
-	std::shared_ptr<const Frame> m_displayed;
+	std::shared_ptr<const Frame> m_displayed{nullptr};
 
 	/// @brief Zoom and pan state used by @ref imgui_zoomable_image.
 	ImGuiImage::State m_zoom_state;

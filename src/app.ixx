@@ -68,17 +68,20 @@ namespace yellow_mug {
 		void setup_context_menu() {
 			m_graph.rightClickPopUpContent([this](ImFlow::BaseNode* node) {
 				if (node == nullptr) {
-					if (ImGui::Selectable("Source")) {
-						m_graph.placeNode<SourceProcessorNode>();
+					if (ImGui::Selectable("Blur")) {
+						m_graph.placeNode<BlurProcessorNode>();
+					}
+					if (ImGui::Selectable("Grayscale")) {
+						m_graph.placeNode<GrayscaleProcessorNode>();
 					}
 					if (ImGui::Selectable("Invert")) {
 						m_graph.placeNode<InvertProcessorNode>();
 					}
-					if (ImGui::Selectable("Blur")) {
-						m_graph.placeNode<BlurProcessorNode>();
-					}
 					if (ImGui::Selectable("Mask")) {
 						m_graph.placeNode<MaskBlendProcessorNode>();
+					}
+					if (ImGui::Selectable("Source")) {
+						m_graph.placeNode<SourceProcessorNode>();
 					}
 					if (ImGui::Selectable("Output")) {
 						auto target = m_graph.placeNode<TargetNode>();
