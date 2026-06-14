@@ -12,39 +12,49 @@ elseif(CMAKE_VERSION VERSION_GREATER_EQUAL "3.30.0")
 endif()
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
-# set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 set(CMAKE_CXX_MODULE_STD ON)
 set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
+add_compile_options(
+	"$<$<CONFIG:Debug>:$<IF:$<CXX_COMPILER_ID:MSVC>,/Zi,-g>>"
+	"$<$<CONFIG:Release>:$<IF:$<CXX_COMPILER_ID:MSVC>,/O2,-O3>>"
+	"$<$<CONFIG:Release>:$<IF:$<CXX_COMPILER_ID:MSVC>,/fp:fast,-ffast-math>>"
+)
 
 # dependencies
 include(FetchContent)
 
+set(GLFW_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/glfw)
 set(IMGUI_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/imgui)
 set(IMNODEFLOW_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/ImNodeFlow)
 set(IMGUI_ZOOMABLE_IMAGE_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/imgui_zoomable_image)
 set(STB_IMAGE_DIR ${CMAKE_CURRENT_LIST_DIR}/vendor/stb_image)
 
+FetchContent_Declare(glfw
+	GIT_REPOSITORY "https://github.com/glfw/glfw.git"
+	GIT_TAG "3.4"
+	SOURCE_DIR ${GLFW_DIR}
+	GIT_SHALLOW TRUE
+)
+
 FetchContent_Declare(ImGui
 	 GIT_REPOSITORY "https://github.com/ocornut/imgui.git"
-	 GIT_TAG "docking"
+	 GIT_TAG "v1.92.8-docking"
 	 SOURCE_DIR ${IMGUI_DIR}
 	 GIT_SHALLOW TRUE
 )
 
 FetchContent_Declare(ImNodeFlow
 	 GIT_REPOSITORY "https://github.com/Fattorino/ImNodeFlow.git"
-	 GIT_TAG "master"
+	 GIT_TAG "e4cb098"
 	 SOURCE_DIR ${IMNODEFLOW_DIR}
 	 GIT_SHALLOW TRUE
 )
 
 FetchContent_Declare(imgui_zoomable_image
 	 GIT_REPOSITORY "https://github.com/danielm5/imgui_zoomable_image.git"
-	 GIT_TAG "main"
+	 GIT_TAG "v0.1.0"
 	 SOURCE_DIR ${IMGUI_ZOOMABLE_IMAGE_DIR}
 	 GIT_SUBMODULES ""
 	 SOURCE_SUBDIR  "" # do not use CMakeLists.txt from the dependency
@@ -53,7 +63,7 @@ FetchContent_Declare(imgui_zoomable_image
 
 FetchContent_Declare(stb_image
 	 GIT_REPOSITORY "https://github.com/nothings/stb.git"
-	 GIT_TAG "master"
+	 GIT_TAG "31c1ad3"
 	 SOURCE_DIR ${STB_IMAGE_DIR}
 	 GIT_SHALLOW TRUE
 )
@@ -65,6 +75,12 @@ project(${NAME} LANGUAGES C CXX)
 # For Doxygen
 set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 set(CMAKE_C_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES})
+
+# GLFW
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(glfw)
 
 # ImGui
 FetchContent_MakeAvailable(ImGui)
@@ -81,7 +97,6 @@ target_include_directories(imgui_core PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/misc/cpp/
 add_library(ImGui::Core ALIAS imgui_core)
 
 # ImGui::GLFW
-find_package(glfw3 REQUIRED)
 add_library(imgui_glfw STATIC ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp)
 target_include_directories(imgui_glfw PUBLIC ${IMGUI_DIR}/backends)
 target_link_libraries(imgui_glfw PUBLIC ImGui::Core glfw)
@@ -116,6 +131,8 @@ add_library(ImGuiImage::Zoomable ALIAS imgui_zoomable_image)
 FetchContent_MakeAvailable(stb_image)
 add_executable(${NAME} src/main.cpp)
 target_sources(${NAME}
+	PRIVATE
+		src/stb_image.cpp
 	PUBLIC
 	FILE_SET CXX_MODULES FILES
 		src/app.ixx
@@ -138,7 +155,6 @@ target_sources(${NAME}
 		src/processors/mask_blend.ixx
 		src/processors/processor.ixx
 		src/processors/source.ixx
-		src/utility/stb_image.ixx
 )
 target_include_directories(${NAME} PRIVATE ${STB_IMAGE_DIR})
 target_link_libraries(${NAME}
@@ -151,29 +167,33 @@ target_link_libraries(${NAME}
 )
 
 # Doxygen documentation
-set(TAG_URL "https://upload.cppreference.com/images/f/f8/cppreference-doxygen-web.tag.xml")
-set(TAG_FILE "${CMAKE_BINARY_DIR}/cppreference-doxygen-web.tag.xml")
 
-if(NOT EXISTS "${TAG_FILE}")
-    message(STATUS "Downloading cppreference Doxygen tag file…")
-    file(DOWNLOAD "${TAG_URL}" "${TAG_FILE}" STATUS download_status)
-    list(GET download_status 0 status_code)
-    if(NOT status_code EQUAL 0)
-        message(WARNING "Failed to download tag file: ${download_status}")
-    endif()
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+	set(TAG_URL "https://upload.cppreference.com/images/f/f8/cppreference-doxygen-web.tag.xml")
+	set(TAG_FILE "${CMAKE_BINARY_DIR}/cppreference-doxygen-web.tag.xml")
+
+	if(NOT EXISTS "${TAG_FILE}")
+		message(STATUS "Downloading cppreference Doxygen tag file…")
+		file(DOWNLOAD "${TAG_URL}" "${TAG_FILE}" STATUS download_status)
+		list(GET download_status 0 status_code)
+		if(NOT status_code EQUAL 0)
+			message(WARNING "Failed to download tag file: ${download_status}")
+		endif()
+	endif()
+	set(DOXYGEN_TAGFILES "${TAG_FILE}=https://cppreference.com/w/")
+
+	configure_file(
+		"${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in"
+		"${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
+		@ONLY
+	)
+	add_custom_target(docs
+		COMMAND ${DOXYGEN_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
+		WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+		COMMENT "Generating API documentation with Doxygen"
+		VERBATIM
+	)
+else()
+	message(STATUS "Doxygen not found — skipping docs target")
 endif()
-set(DOXYGEN_TAGFILES "${TAG_FILE}=https://cppreference.com/w/")
-
-configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
-    @ONLY
-)
-
-find_package(Doxygen REQUIRED)
-add_custom_target(docs
-    COMMAND ${DOXYGEN_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
-    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    COMMENT "Generating API documentation with Doxygen"
-    VERBATIM
-)

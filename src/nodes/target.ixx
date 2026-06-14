@@ -13,6 +13,20 @@ module;
 #ifndef APIENTRY
 #define APIENTRY
 #endif
+
+// OpenGL 1.3+ constants missing from Windows gl.h
+#ifndef GL_CLAMP_TO_BORDER
+#define GL_CLAMP_TO_BORDER 0x812D
+#endif
+#ifndef GL_TEXTURE_BORDER_COLOR
+#define GL_TEXTURE_BORDER_COLOR 0x1004
+#endif
+
+// OpenGL 3.3+ constants missing from Windows gl.h
+#ifndef GL_SAMPLER_BINDING
+#define GL_SAMPLER_BINDING 0x8919
+#endif
+
 export module yellow_mug.nodes:target;
 
 import std;
