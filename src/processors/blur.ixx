@@ -39,9 +39,9 @@ public:
 	 * The blur operates in premultiplied-alpha space to avoid colour bleeding
 	 * from fully transparent pixels. It relies entirely on `std::views` and
 	 * exact 32-bit integer arithmetic (no floats). The steps are:
-	 * -# Premultiply: scale each RGB channel by `A` into a `uint32_t` buffer.
-	 * -# Horizontal pass: edge-padded sliding window (`std::views::slide`).
-	 * -# Vertical pass: strided sliding window (`std::views::stride`).
+	 * -# Premultiply: scale each RGB channel by `A` into an `uint32_t` buffer.
+	 * -# Horizontal pass: blur pixels horizontally.
+	 * -# Vertical pass: blur pixels vertically.
 	 * -# Unpremultiply: divide the accumulated RGB sums by the blurred alpha.
 	 *
 	 * A radius of `0` short-circuits to a plain clone.
@@ -52,7 +52,7 @@ public:
 	 *
 	 */
 	[[nodiscard]] std::shared_ptr<const Frame> operator()(
-		std::span<const std::shared_ptr<const Frame>> inputs) override
+		const std::span<const std::shared_ptr<const Frame>> inputs) override
 	{
 		clear_error();
 		if (!inputs[0])
@@ -73,7 +73,7 @@ public:
 		using Pixel = std::array<std::uint32_t, 4>;
 		std::vector<Pixel> mid_grid(pixel_count);
 		std::vector<Pixel> padded(std::max(width, height) + 2 * r);
-		
+
 		const auto in = input.bytes();
 
 		// 1. Horizontal pass
@@ -88,7 +88,7 @@ public:
 				// Multiply RGB channels by alpha.
 				padded[x + r] = {in[idx] * a, in[idx + 1] * a, in[idx + 2] * a, a};
 			}
-			
+
 			// Fill left and right borders
 			std::fill_n(padded.begin(), r, padded[r]);
 			std::fill_n(padded.begin() + width + r, r, padded[width + r - 1]);
@@ -106,9 +106,9 @@ public:
 			}
 		}
 
-		Frame out(input.dimensions());
+		Frame out{input.dimensions()};
 		auto out_bytes = out.bytes();
-		const std::uint32_t area = static_cast<std::uint32_t>(w_size * w_size);
+		const auto area = static_cast<std::uint32_t>(w_size * w_size);
 
 		// 2. Vertical pass & Unpremultiply
 		for (auto x{0uz}; x < width; ++x)
@@ -136,7 +136,7 @@ public:
 				const auto idx = (y * width + x) * 4;
 				if (sa > 0)
 				{
-					out_bytes[idx]     = static_cast<std::uint8_t>(sr / sa);
+					out_bytes[idx] = static_cast<std::uint8_t>(sr / sa);
 					out_bytes[idx + 1] = static_cast<std::uint8_t>(sg / sa);
 					out_bytes[idx + 2] = static_cast<std::uint8_t>(sb / sa);
 				}

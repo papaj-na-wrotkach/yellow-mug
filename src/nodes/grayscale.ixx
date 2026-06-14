@@ -1,10 +1,14 @@
 /**
  * @file grayscale.ixx
- * @brief Declares the GrayscaleProcessorNode class.
+ * @brief Declaration and definition of the @ref yellow_mug::GrayscaleProcessorNode class.
  */
+
 module;
 #include <imgui.h>
+#include <ImNodeFlow.h>
+
 export module yellow_mug.nodes:grayscale;
+
 import std;
 import yellow_mug.core;
 import yellow_mug.processors;
@@ -14,32 +18,42 @@ export namespace yellow_mug
 {
 
 /**
- * @brief Node integration for the Grayscale processor.
+ * @brief Node integration for the @ref GrayscaleProcessor.
  *
  * @details
- * Inherits privately from @ref GrayscaleProcessor to construct the
- * processor subsystem before the node, and publicly from @ref ProcessorNode
- * to provide the ImNodeFlow UI elements.
+ * Presents a combo box that lets the user select the @ref GrayscaleMethod
+ * used to compute the per-pixel intensity.
+ *
+ * @see GrayscaleProcessor
  */
-class GrayscaleProcessorNode : private GrayscaleProcessor, public ProcessorNode
+class GrayscaleProcessorNode final : GrayscaleProcessor, public ProcessorNode
 {
 public:
 	/**
-	 * @brief Constructs the node and binds it to its internal processor.
+	 * @brief Constructs the node and sets its title from @ref Processor::label().
 	 */
-	GrayscaleProcessorNode() : ProcessorNode(static_cast<GrayscaleProcessor&>(*this))
+	GrayscaleProcessorNode() : ProcessorNode{static_cast<GrayscaleProcessor&>(*this)}
 	{
-		setTitle("Grayscale");
+		setTitle(std::string{this->GrayscaleProcessor::label()});
 	}
 
 	/**
-	 * @brief Draws the node's UI, including a combo box for selecting the grayscale method.
+	 * @brief Draws the grayscale method combo box.
+	 *
+	 * @details
+	 * Presents an `ImGui::Combo` listing all @ref GrayscaleMethod values
+	 * (`Luminosity`, `Average`, `Lightness`), bound to
+	 * @ref GrayscaleProcessor::m_method.
 	 */
 	void draw() override
 	{
-		int method = static_cast<int>(m_method);
-		constexpr std::array items = { "Luminosity", "Average", "Lightness" };
-		
+		auto method = static_cast<int>(m_method);
+		constexpr std::array items{
+			"Luminosity",
+			"Average",
+			"Lightness"
+		};
+
 		ImGui::SetNextItemWidth(100.0f);
 		if (ImGui::Combo("Method", &method, items.data(), 3))
 		{
@@ -48,4 +62,4 @@ public:
 	}
 };
 
-}
+} // namespace yellow_mug

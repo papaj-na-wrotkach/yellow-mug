@@ -19,15 +19,15 @@ export namespace yellow_mug
 {
 
 /**
- * @brief Node wrapping a @ref SourceProcessor in the ImNodeFlow graph.
+ * @brief Node integration for the @ref SourceProcessor.
  *
  * @details
- * Inherits privately from @ref SourceProcessor and publicly from
- * @ref ProcessorNode. @ref draw() presents an editable text field for
- * the image path and a button that triggers
- * @ref SourceProcessor::load_file().
+ * Presents an editable text field for the image path and a "Load" button
+ * that triggers @ref SourceProcessor::load_file().
+ *
+ * @see SourceProcessor
  */
-class SourceProcessorNode : private SourceProcessor, public ProcessorNode
+class SourceProcessorNode final : SourceProcessor, public ProcessorNode
 {
 public:
 	/**
@@ -35,7 +35,7 @@ public:
 	 */
 	SourceProcessorNode() : ProcessorNode{static_cast<SourceProcessor&>(*this)}
 	{
-		setTitle(std::string{this->label()});
+		setTitle(std::string{this->SourceProcessor::label()});
 	}
 
 	/**

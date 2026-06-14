@@ -1,6 +1,7 @@
 /**
  * @file frame.ixx
- * @brief Declares the `Frame` class.
+ * @brief Declaration and definition of the @ref yellow_mug::Extent2D struct
+ *        and the @ref yellow_mug::Frame class.
  */
 export module yellow_mug.core:frame;
 import std;
@@ -128,7 +129,7 @@ struct Extent2D
  *
  * The type is move-only. Copying is intentionally disabled to make
  * duplication costs visible at call sites; use @ref clone()
- * to obtain an explicit deep copy when one is required.
+ * to get an explicit deep copy when one is required.
  */
 class Frame
 {
@@ -143,11 +144,11 @@ public:
 	 *
 	 * @details
 	 * Allocates a pixel buffer of `dimensions.area() * 4`
-	 * bytes, zero-initialised.
+	 * bytes, zero-initialized.
 	 *
 	 * @param dimensions Width and height of the frame, in pixels.
 	 */
-	explicit Frame(Extent2D dimensions) : m_extent{dimensions}
+	explicit Frame(const Extent2D dimensions) : m_extent{dimensions}
 	{
 	}
 
@@ -166,7 +167,7 @@ public:
 	 *
 	 * @pre `data.size() == dimensions.area() * 4`.
 	 */
-	Frame(Extent2D dimensions, std::span<const std::uint8_t> data) :
+	Frame(const Extent2D dimensions, const std::span<const std::uint8_t> data) :
 		m_extent{dimensions},
 		m_pixels{data.begin(), data.end()}
 	{
@@ -292,4 +293,4 @@ private:
 	std::vector<std::uint8_t> m_pixels = std::vector<std::uint8_t>(m_extent.area() * 4);
 };
 
-}
+} // namespace yellow_mug

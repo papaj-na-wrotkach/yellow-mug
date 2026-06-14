@@ -32,7 +32,7 @@ enum class MaskChannel : std::size_t
  * Consumes three input frames — source, target, and mask — and produces one
  * output frame. Each output pixel is a linear interpolation between
  * the corresponding source and target pixels, with one selectable channel
- * of the mask pixel (see @ref m_mask_channel) used as the normalised
+ * of the mask pixel (see @ref m_mask_channel) used as the normalized
  * blend weight.
  *
  * @see MaskBlendProcessorNode
@@ -49,10 +49,10 @@ public:
 	 * @brief Blends the source and target frames according to the mask frame.
 	 *
 	 * @details
-	 * Input slot layout:
-	 * - Slot 0 — source frame (fully present where the mask is black, i.e. @em alpha = 0).
-	 * - Slot 1 — target frame (fully present where the mask is white, i.e. @em alpha = 1).
-	 * - Slot 2 — mask frame; the channel selected by @ref m_mask_channel is
+	 * Input layout:
+	 * - Input 0 — source frame (fully present where the mask is black, i.e., @em alpha = 0).
+	 * - Input 1 — target frame (fully present where the mask is white, i.e., @em alpha = 1).
+	 * - Input 2 — mask frame; the channel selected by @ref m_mask_channel is
 	 *   read as the blend weight.
 	 *
 	 * A freshly allocated output @ref Frame with the same @ref Extent2D as the
@@ -64,7 +64,7 @@ public:
 	 * is empty or if the frames differ in dimensions.
 	 */
 	[[nodiscard]] std::shared_ptr<const Frame> operator()(
-		std::span<const std::shared_ptr<const Frame>> inputs) override
+		const std::span<const std::shared_ptr<const Frame>> inputs) override
 	{
 		clear_error();
 		if (!(inputs[0] && inputs[1] && inputs[2]))
@@ -73,11 +73,11 @@ public:
 			return nullptr;
 		}
 
-		const Frame& src = *inputs[0];
-		const Frame& tgt = *inputs[1];
-		const Frame& msk = *inputs[2];
+		const auto& src = *inputs[0];
+		const auto& tgt = *inputs[1];
+		const auto& msk = *inputs[2];
 
-		const Extent2D& extent = src.dimensions();
+		const auto& extent = src.dimensions();
 
 		if (tgt.dimensions() != extent || msk.dimensions() != extent)
 		{
@@ -85,7 +85,7 @@ public:
 			return nullptr;
 		}
 
-		Frame out(extent);
+		Frame out{extent};
 
 		for (auto&& [s, t, m, o] : std::views::zip(
 			src.pixel_view(),
@@ -93,11 +93,11 @@ public:
 			msk.pixel_view(),
 			out.pixel_view()))
 		{
-			const float alpha = static_cast<float>(
+			const auto alpha = static_cast<float>(
 				m[static_cast<std::size_t>(m_mask_channel)]) / 255.0f;
 
 			// mask-blend RGB channels
-			for (auto c{0uz}; c < 3; ++c)
+			for (const auto c : std::views::iota(0uz, 3uz))
 			{
 				o[c] = static_cast<std::uint8_t>(std::lerp(
 					static_cast<float>(s[c]),

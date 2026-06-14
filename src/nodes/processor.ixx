@@ -92,16 +92,15 @@ protected:
 	 * @brief Helper to display the processor's last error message.
 	 *
 	 * @details
-	 * Checks if the underlying @ref Processor has set an error message
+	 * Checks if the underlying @ref Processor has set an error message,
 	 * and if so, displays it in red text within the node. Should be
 	 * called by derived classes in their @ref draw() implementation.
 	 */
 	void draw_error() const
 	{
-		auto err = m_processor.last_error();
-		if (!err.empty())
+		if (const auto err = m_processor.last_error(); !err.empty())
 		{
-			ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Error: %s", err.data());
+			ImGui::TextColored(ImVec4{1.0f, 0.3f, 0.3f, 1.0f}, "Error: %s", err.data());
 		}
 	}
 };
@@ -109,9 +108,9 @@ protected:
 ProcessorNode::ProcessorNode(Processor& processor)
 	: m_processor(processor)
 {
-	for (auto i{0uz}; i < m_processor.input_count(); ++i)
+	for (auto i : std::views::iota(0uz, m_processor.input_count()))
 	{
-		addIN_uid<std::shared_ptr<const Frame>>(i, std::to_string(i), nullptr, ImFlow::ConnectionFilter::None());
+		addIN_uid<std::shared_ptr<const Frame>>(i, std::format("in {}", i), nullptr, ImFlow::ConnectionFilter::None());
 	}
 
 	if (m_processor.output_count() == 1)
@@ -121,7 +120,7 @@ ProcessorNode::ProcessorNode(Processor& processor)
 			{
 				std::vector<std::shared_ptr<const Frame>> inputs =
 					std::views::iota(0uz, m_processor.input_count())
-					| std::views::transform([this](std::size_t i)
+					| std::views::transform([this](const auto i)
 					{
 						return getInVal<std::shared_ptr<const Frame>>(i);
 					})

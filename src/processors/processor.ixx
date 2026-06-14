@@ -23,7 +23,7 @@ export namespace yellow_mug
  *
  * Concrete processors derive publicly from this class and implement
  * `operator()`, `input_count()`, `output_count()` and `label()` according to
- * their specific behaviour. Tunable parameters of a concrete processor
+ * their specific behavior. Tunable parameters of a concrete processor
  * should be declared as protected members, so that the corresponding
  * `ProcessorNode`, which inherits privately from the processor, can access
  * and expose them through the graphical interface.
@@ -114,7 +114,7 @@ private:
 	/**
 	 * @brief Holds the last error message produced by this processor.
 	 */
-	std::string m_last_error;
+	std::string m_last_error{};
 };
 
-}
+} // namespace yellow_mug

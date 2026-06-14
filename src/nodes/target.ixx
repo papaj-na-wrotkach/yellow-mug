@@ -22,16 +22,20 @@ export namespace yellow_mug
 {
 
 /**
- * @brief Node wrapping the visualization and output of the graph in a dedicated window.
+ * @brief Terminal node that evaluates the upstream graph and renders the result.
  *
  * @details
- * Inherits publicly from @ref ImFlow::BaseNode. @ref draw() presents controls
- * within the graph and manages rendering a separate dockable image viewer window
- * using @ref imgui_zoomable_image.
+ * Unlike other nodes, `TargetNode` inherits only from @ref ImFlow::BaseNode
+ * and does not participate in the @ref Processor / @ref ProcessorNode
+ * hierarchy. It manages its own input pin, OpenGL texture lifetime, and
+ * a dockable image-viewer window independently.
  *
- * @see Frame
+ * Pressing "Run" calls `getInVal()` on the single input pin, which
+ * recursively triggers pull-evaluation of every upstream node in the graph.
+ * The resulting @ref Frame is uploaded to a managed OpenGL texture and
+ * displayed in a separate zoomable viewer window via `imgui_zoomable_image`.
  */
-class TargetNode : public ImFlow::BaseNode
+class TargetNode final : public ImFlow::BaseNode
 {
 public:
 	/**
@@ -157,7 +161,7 @@ void TargetNode::init_checkerboard()
 	glBindTexture(GL_TEXTURE_2D, m_checkerboard_texture_id);
 
 	// 4 pixel square defining the checkerboard colors.
-	constexpr std::array pixels = std::to_array<std::uint8_t>({
+	constexpr auto pixels = std::to_array<std::uint8_t>({
 		0xBF, 0xBF, 0xBF, 0xFF, /* #BFBFBFFF */
 		0x7F, 0x7F, 0x7F, 0xFF, /* #7F7F7FFF */
 
@@ -248,7 +252,7 @@ void TargetNode::draw()
 {
 	if (ImGui::Button("Run"))
 	{
-		auto frame = getInVal<std::shared_ptr<const Frame>>(0);
+		const auto frame = getInVal<std::shared_ptr<const Frame>>(0);
 		if (frame && !frame->dimensions().empty())
 		{
 			upload_texture(*(m_displayed = frame));
@@ -278,7 +282,7 @@ void TargetNode::draw()
 
 	if (m_viewer_open && m_outer_context != nullptr)
 	{
-		ImGuiContext* inner_ctx = ImGui::GetCurrentContext();
+		auto* inner_ctx = ImGui::GetCurrentContext();
 		ImGui::SetCurrentContext(m_outer_context);
 
 		draw_viewer();
@@ -301,40 +305,43 @@ void TargetNode::draw_viewer()
 		if (m_displayed && m_texture_id != 0)
 		{
 			const auto& [width, height] = m_displayed->dimensions();
-			m_zoom_state.textureSize = ImVec2(static_cast<float>(width), static_cast<float>(height));
+
+			//TODO: add implicit conversion from Extent2D to ImVec2
+			m_zoom_state.textureSize = ImVec2{
+				static_cast<float>(width),
+				static_cast<float>(height)
+			};
 
 			ImGui::Checkbox("Transparent Checkerboard", &m_show_checkerboard);
 			ImGui::SameLine();
 			ImGui::Checkbox("Maintain Aspect Ratio", &m_zoom_state.maintainAspectRatio);
-
-			ImVec2 display_size = ImGui::GetContentRegionAvail();
-
-			if (display_size.x > 0.0f && display_size.y > 0.0f)
+			const auto display_size = ImGui::GetContentRegionAvail();
+			if (const auto [disp_x, disp_y] = display_size; disp_x > 0.0f && disp_y > 0.0f)
 			{
-				ImVec2 uv0(0.0f, 0.0f);
-				ImVec2 uv1(1.0f, 1.0f);
+				ImVec2 uv0{0.0f, 0.0f};
+				ImVec2 uv1{1.0f, 1.0f};
 
 				// Calculate padding if needed so the image does not clip.
 				if (m_zoom_state.maintainAspectRatio)
 				{
-					float aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
-					float canvas_aspect = display_size.x / display_size.y;
+					const auto aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
+					const auto canvas_aspect = disp_x / disp_y;
 
 					if (canvas_aspect > aspect_ratio)
 					{
-						float scale = canvas_aspect / aspect_ratio;
+						const auto scale = canvas_aspect / aspect_ratio;
 						uv0.x = 0.5f - 0.5f * scale;
 						uv1.x = 0.5f + 0.5f * scale;
 					}
 					else
 					{
-						float scale = aspect_ratio / canvas_aspect;
+						const auto scale = aspect_ratio / canvas_aspect;
 						uv0.y = 0.5f - 0.5f * scale;
 						uv1.y = 0.5f + 0.5f * scale;
 					}
 				}
 
-				ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
+				const auto canvas_pos = ImGui::GetCursorScreenPos();
 
 				// Scoped helper lambdas to manage OpenGL sampler state.
 				// These are static, constexpr, and noexcept for optimal execution as C-style callbacks.
@@ -354,7 +361,7 @@ void TargetNode::draw_viewer()
 				static constexpr auto restore_callback = [](const ImDrawList*, const ImDrawCmd* cmd) noexcept
 				{
 					// Restore the saved sampler.
-					auto* node = static_cast<TargetNode*>(cmd->UserCallbackData);
+					const auto * node = static_cast<TargetNode*>(cmd->UserCallbackData);
 					if (s_glBindSamplerFn != nullptr)
 					{
 						s_glBindSamplerFn(0, node->m_last_sampler);
@@ -363,18 +370,18 @@ void TargetNode::draw_viewer()
 
 				if (m_show_checkerboard && m_checkerboard_texture_id != 0)
 				{
-					ImDrawList* draw_list = ImGui::GetWindowDrawList();
+					auto* draw_list = ImGui::GetWindowDrawList();
 
 					// Callback magic to render the checkerboard using "raw" OpenGL and hardware acceleration.
 					draw_list->AddCallback(unbind_callback, this);
 
 					// Render hardware-tiled 2x2px checkerboard
 					draw_list->AddImage(
-						static_cast<ImTextureID>(m_checkerboard_texture_id),
+						m_checkerboard_texture_id,
 						canvas_pos,
-						ImVec2(canvas_pos.x + display_size.x, canvas_pos.y + display_size.y),
-						ImVec2(0.0f, 0.0f),
-						ImVec2(display_size.x / 32.0f, display_size.y / 32.0f)
+						ImVec2{canvas_pos.x + disp_x, canvas_pos.y + disp_y},
+						ImVec2{0.0f, 0.0f},
+						ImVec2{disp_x / 32.0f, disp_y / 32.0f}
 					);
 
 					// Restore the previously bound sampler.
@@ -384,21 +391,21 @@ void TargetNode::draw_viewer()
 				// Inject the unbind callback into the child draw list.
 				// This disables ImGui's sampler specifically for this widget,
 				// allowing the use of other samplers and GL_CLAMP_TO_BORDER.
-				ImGui::BeginChild("ImageRegion", ImVec2(0, 0), false, ImGuiWindowFlags_NoMove);
-				ImDrawList* child_draw_list = ImGui::GetWindowDrawList();
+				ImGui::BeginChild("ImageRegion", ImVec2{0, 0}, false, ImGuiWindowFlags_NoMove);
+				auto* child_draw_list = ImGui::GetWindowDrawList();
 				child_draw_list->AddCallback(unbind_callback, this);
 				ImGui::EndChild();
 
-				ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0.0f, 0.0f, 0.0f, 0.0f});
 
 				// Trick to stretch the image.
 				// Aspect ratio is maintained manually.
-				bool user_maintain = m_zoom_state.maintainAspectRatio;
+				const auto user_maintain = m_zoom_state.maintainAspectRatio;
 				m_zoom_state.maintainAspectRatio = false;
 
 				// Workaround. Uses default values in the 7-parameter function, as the 5-parameter one simply ignores uv0 and uv1.
 				ImGuiImage::Zoomable(
-					static_cast<ImTextureID>(m_texture_id),
+					m_texture_id,
 					display_size,
 					uv0,
 					uv1,
@@ -412,7 +419,7 @@ void TargetNode::draw_viewer()
 				ImGui::PopStyleColor();
 
 				// Inject the restore callback into the child draw list
-				ImGui::BeginChild("ImageRegion", ImVec2(0, 0), false, ImGuiWindowFlags_NoMove);
+				ImGui::BeginChild("ImageRegion", ImVec2{0, 0}, false, ImGuiWindowFlags_NoMove);
 				child_draw_list = ImGui::GetWindowDrawList();
 				child_draw_list->AddCallback(restore_callback, this);
 				ImGui::EndChild();

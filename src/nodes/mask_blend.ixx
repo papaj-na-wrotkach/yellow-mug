@@ -18,17 +18,16 @@ export namespace yellow_mug
 {
 
 /**
- * @brief Node wrapping a @ref MaskBlendProcessor in the ImNodeFlow graph.
+ * @brief Node integration for the @ref MaskBlendProcessor.
  *
  * @details
- * Inherits privately from @ref MaskBlendProcessor and publicly from
- * @ref ProcessorNode. The three input pins correspond to the source,
- * target, and mask frames respectively.
+ * Presents radio buttons that select which channel of the mask frame drives
+ * the per-pixel blend weight (see @ref MaskBlendProcessor::m_mask_channel).
+ * The three input pins correspond to the source, target, and mask frames.
  *
- * @ref draw() presents radio buttons that let the user choose which
- * colour channel of the mask frame drives the blend weight.
+ * @see MaskBlendProcessor
  */
-class MaskBlendProcessorNode : private MaskBlendProcessor, public ProcessorNode
+class MaskBlendProcessorNode final : MaskBlendProcessor, public ProcessorNode
 {
 public:
 	/**
@@ -36,7 +35,7 @@ public:
 	 */
 	MaskBlendProcessorNode() : ProcessorNode{static_cast<MaskBlendProcessor&>(*this)}
 	{
-		setTitle(std::string{this->label()});
+		setTitle(std::string{this->MaskBlendProcessor::label()});
 	}
 
 	/**
@@ -49,14 +48,11 @@ public:
 	 */
 	void draw() override
 	{
-		int channel = static_cast<int>(m_mask_channel);
+		auto channel = static_cast<int>(m_mask_channel);
 		ImGui::TextUnformatted("Mask channel");
 		ImGui::RadioButton("Red", &channel, static_cast<int>(MaskChannel::Red));
-		ImGui::SameLine();
 		ImGui::RadioButton("Green", &channel, static_cast<int>(MaskChannel::Green));
-		ImGui::SameLine();
 		ImGui::RadioButton("Blue", &channel, static_cast<int>(MaskChannel::Blue));
-		ImGui::SameLine();
 		ImGui::RadioButton("Alpha", &channel, static_cast<int>(MaskChannel::Alpha));
 		m_mask_channel = static_cast<MaskChannel>(channel);
 		draw_error();

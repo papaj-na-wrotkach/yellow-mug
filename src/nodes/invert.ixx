@@ -18,16 +18,15 @@ export namespace yellow_mug
 {
 
 /**
- * @brief Node wrapping an @ref InvertProcessor in the ImNodeFlow graph.
+ * @brief Node integration for the @ref InvertProcessor.
  *
  * @details
- * InvertProcessorNode inherits privately from @ref InvertProcessor (for its
- * pin layout and @ref Processor::operator()() logic) and publicly from
- * @ref ProcessorNode (for the ImFlow integration).
+ * Presents a set of checkboxes that independently toggle inversion of the
+ * red, green, blue, and alpha channels.
  *
- * Presents checkboxes to select which channels are inverted.
+ * @see InvertProcessor
  */
-class InvertProcessorNode : private InvertProcessor, public ProcessorNode
+class InvertProcessorNode final : InvertProcessor, public ProcessorNode
 {
 public:
 	/**
@@ -35,7 +34,7 @@ public:
 	 */
 	InvertProcessorNode() : ProcessorNode{static_cast<InvertProcessor&>(*this)}
 	{
-		setTitle(std::string{this->label()});
+		setTitle(std::string{this->InvertProcessor::label()});
 	}
 
 	/**
@@ -47,13 +46,10 @@ public:
 	 */
 	void draw() override
 	{
-		ImGui::Checkbox("Red", &m_invert_red);
-		ImGui::SameLine();
-		ImGui::Checkbox("Green", &m_invert_green);
-		ImGui::SameLine();
-		ImGui::Checkbox("Blue", &m_invert_blue);
-		ImGui::SameLine();
-		ImGui::Checkbox("Alpha", &m_invert_alpha);
+		ImGui::Checkbox("Red", &m_invert_r);
+		ImGui::Checkbox("Green", &m_invert_g);
+		ImGui::Checkbox("Blue", &m_invert_b);
+		ImGui::Checkbox("Alpha", &m_invert_a);
 		draw_error();
 	}
 };

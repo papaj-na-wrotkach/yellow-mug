@@ -18,14 +18,15 @@ export namespace yellow_mug
 {
 
 /**
- * @brief Node wrapping a @ref BlurProcessor in the ImNodeFlow graph.
+ * @brief Node integration for the @ref BlurProcessor.
  *
  * @details
- * Inherits privately from @ref BlurProcessor and publicly from
- * @ref ProcessorNode. @ref draw() exposes a slider that controls the
- * blur radius.
+ * Presents a radius slider that controls @ref BlurProcessor::m_radius,
+ * clamped to `[0, 64]`.
+ *
+ * @see BlurProcessor
  */
-class BlurProcessorNode : private BlurProcessor, public ProcessorNode
+class BlurProcessorNode final : BlurProcessor, public ProcessorNode
 {
 public:
 	/**
@@ -33,7 +34,7 @@ public:
 	 */
 	BlurProcessorNode() : ProcessorNode{static_cast<BlurProcessor&>(*this)}
 	{
-		setTitle(std::string{this->label()});
+		setTitle(std::string{this->BlurProcessor::label()});
 	}
 
 	/**
