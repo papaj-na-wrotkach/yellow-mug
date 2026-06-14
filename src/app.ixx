@@ -99,6 +99,14 @@ public:
 			glClear(GL_COLOR_BUFFER_BIT);
 
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+			{
+				auto* current_context = glfwGetCurrentContext();
+				ImGui::UpdatePlatformWindows();
+				ImGui::RenderPlatformWindowsDefault();
+				glfwMakeContextCurrent(current_context);
+			}
 			glfwSwapBuffers(m_window);
 		}
 	}
@@ -205,7 +213,10 @@ private:
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		m_context = ImGui::GetCurrentContext();
-		ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
+		ImGui::GetIO().ConfigFlags |=
+			ImGuiConfigFlags_DockingEnable |
+			ImGuiConfigFlags_ViewportsEnable |
+			ImGuiConfigFlags_NavEnableKeyboard;
 		ImGui::StyleColorsDark();
 
 		ImGui_ImplGlfw_InitForOpenGL(m_window, true);

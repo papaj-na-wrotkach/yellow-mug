@@ -181,19 +181,71 @@ if(DOXYGEN_FOUND)
 			message(WARNING "Failed to download tag file: ${download_status}")
 		endif()
 	endif()
-	set(DOXYGEN_TAGFILES "${TAG_FILE}=https://cppreference.com/w/")
 
-	configure_file(
-		"${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in"
-		"${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
-		@ONLY
+	FetchContent_Declare(doxygen-awesome-css
+		GIT_REPOSITORY "https://github.com/jothepro/doxygen-awesome-css.git"
+		GIT_TAG        "v2.4.2"
+		GIT_SHALLOW    TRUE
 	)
-	add_custom_target(docs
-		COMMAND ${DOXYGEN_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
-		WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+	FetchContent_MakeAvailable(doxygen-awesome-css)
+	FetchContent_GetProperties(doxygen-awesome-css SOURCE_DIR AWESOME_CSS_DIR)
+
+	set(DOXYGEN_PROJECT_NAME "Yellow Mug")
+	set(DOXYGEN_PROJECT_BRIEF "A visual node-editor-based image processing pipeline")
+	set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/docs")
+
+	set(DOXYGEN_EXTRACT_ALL YES)
+	set(DOXYGEN_EXTRACT_PRIVATE YES)
+	set(DOXYGEN_EXTRACT_PRIV_VIRTUAL YES)
+	set(DOXYGEN_EXTRACT_PACKAGE YES)
+	set(DOXYGEN_EXTRACT_STATIC YES)
+	set(DOXYGEN_SORT_MEMBERS_CTORS_1ST YES)
+	set(DOXYGEN_RECURSIVE YES)
+	set(DOXYGEN_CLANG_ASSISTED_PARSING YES)
+	set(DOXYGEN_HAVE_DOT YES)
+	set(DOXYGEN_UML_LOOK YES)
+	set(DOXYGEN_UML_LIMIT_NUM_FIELDS 20)
+	set(DOXYGEN_TEMPLATE_RELATIONS YES)
+	set(DOXYGEN_CALL_GRAPH YES)
+	set(DOXYGEN_CALLER_GRAPH YES)
+	set(DOXYGEN_DOT_IMAGE_FORMAT svg)
+	set(DOXYGEN_INTERACTIVE_SVG YES)
+	set(DOXYGEN_DOT_MULTI_TARGETS YES)
+	set(DOXYGEN_TAGFILES "${TAG_FILE}=https://cppreference.com/w/")
+	set(DOXYGEN_EXCLUDE_SYMBOLS "std::*")
+	set(DOXYGEN_GENERATE_LATEX YES)
+	set(DOXYGEN_LATEX_CMD_NAME pdflatex)
+	set(DOXYGEN_GENERATE_TREEVIEW YES)
+	set(DOXYGEN_DISABLE_INDEX NO)
+	set(DOXYGEN_FULL_SIDEBAR NO)
+	set(DOXYGEN_HTML_COLORSTYLE LIGHT)
+	set(DOXYGEN_HTML_EXTRA_STYLESHEET
+		"${AWESOME_CSS_DIR}/doxygen-awesome.css"
+		"${AWESOME_CSS_DIR}/doxygen-awesome-sidebar-only.css")
+	set(DOXYGEN_USE_MDFILE_AS_MAINPAGE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+
+	doxygen_add_docs(docs
+		"${CMAKE_CURRENT_SOURCE_DIR}/src"
+		"${CMAKE_CURRENT_SOURCE_DIR}/README.md"
 		COMMENT "Generating API documentation with Doxygen"
-		VERBATIM
 	)
+
+	find_package(LATEX)
+	if(PDFLATEX_COMPILER)
+		add_custom_target(docs-pdf
+			COMMAND ${CMAKE_COMMAND} -E make_directory "${DOXYGEN_OUTPUT_DIRECTORY}/pdf"
+			COMMAND ${PDFLATEX_COMPILER} -interaction=nonstopmode -output-directory "${DOXYGEN_OUTPUT_DIRECTORY}/pdf" refman.tex
+			COMMAND ${PDFLATEX_COMPILER} -interaction=nonstopmode -output-directory "${DOXYGEN_OUTPUT_DIRECTORY}/pdf" refman.tex
+			WORKING_DIRECTORY "${DOXYGEN_OUTPUT_DIRECTORY}/latex"
+			DEPENDS docs
+			COMMENT "Compiling LaTeX docs into PDF with pdflatex"
+			VERBATIM
+		)
+
+	else()
+		set(DOXYGEN_GENERATE_LATEX NO)
+		message(STATUS "PDF LaTeX compiler not found — skipping docs-pdf target")
+	endif()
 else()
 	message(STATUS "Doxygen not found — skipping docs target")
 endif()

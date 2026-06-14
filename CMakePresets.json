@@ -6,6 +6,14 @@
 			"displayName": "Default",
 			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/build"
+		},
+		{
+			"name": "release",
+			"displayName": "Release",
+			"inherits": "default",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			}
 		}
 	]
 }

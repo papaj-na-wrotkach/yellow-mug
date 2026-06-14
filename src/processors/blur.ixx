@@ -36,7 +36,7 @@ public:
 	 * @brief Applies a separable box blur to the first input frame.
 	 *
 	 * @details
-	 * The blur operates in premultiplied-alpha space to avoid colour bleeding
+	 * The blur operates in premultiplied-alpha space to avoid color bleeding
 	 * from fully transparent pixels. It relies entirely on `std::views` and
 	 * exact 32-bit integer arithmetic (no floats). The steps are:
 	 * -# Premultiply: scale each RGB channel by `A` into an `uint32_t` buffer.

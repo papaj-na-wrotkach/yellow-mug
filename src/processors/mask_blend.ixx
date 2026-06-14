@@ -13,16 +13,16 @@ export namespace yellow_mug
 {
 
 /**
- * @brief Selects which colour channel of the mask frame drives the blend.
+ * @brief Selects which color channel of the mask frame drives the blend.
  *
  * @see MaskBlendProcessor::m_mask_channel
  */
 enum class MaskChannel : std::size_t
 {
-	Red = 0,
-	Green = 1,
-	Blue = 2,
-	Alpha = 3,
+	Red = 0,   ///< The red channel.
+	Green = 1, ///< The green channel.
+	Blue = 2,  ///< The blue channel.
+	Alpha = 3, ///< The alpha channel.
 };
 
 /**
