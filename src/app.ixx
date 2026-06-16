@@ -44,6 +44,7 @@ public:
 	{
 		init_window();
 		init_imgui();
+		init_imnodeflow();
 		setup_context_menu();
 	}
 
@@ -78,12 +79,6 @@ public:
 			ImGui::SetNextWindowSize(ImVec2{1024, 768}, ImGuiCond_FirstUseEver);
 			if (ImGui::Begin("Node Editor"))
 			{
-				if (auto* inner_ctx = m_graph.getGrid().getRawContext(); inner_ctx)
-				{
-					ImGui::SetCurrentContext(inner_ctx);
-					ImGui::GetPlatformIO() = m_context->PlatformIO;
-					ImGui::SetCurrentContext(m_context);
-				}
 				m_graph.update();
 			}
 
@@ -221,6 +216,42 @@ private:
 
 		ImGui_ImplGlfw_InitForOpenGL(m_window, true);
 		ImGui_ImplOpenGL3_Init("#version 330");
+	}
+
+	/**
+	 * @brief Initializes ImNodeFlow.
+	 *
+	 * @details
+	 * Creates a new ImGui frame to call update so the PlatformIO inside the context
+	 * of @ref m_graph is initialized. Then sets the members inside the inner context's
+	 * PlatformIO so clipboard and other things work correctly on all platforms.
+	 */
+	void init_imnodeflow()
+	{
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		if (ImGui::Begin("Node Editor"))
+		{
+			m_graph.update();
+		}
+
+		ImGui::End();
+
+		auto& io = m_context->PlatformIO;
+		auto& inner_io = m_graph.getGrid().getRawContext()->PlatformIO;
+		inner_io.Platform_GetClipboardTextFn = io.Platform_GetClipboardTextFn;
+		inner_io.Platform_SetClipboardTextFn = io.Platform_SetClipboardTextFn;
+		inner_io.Platform_ClipboardUserData = io.Platform_ClipboardUserData;
+		inner_io.Platform_SetImeDataFn = io.Platform_SetImeDataFn;
+		inner_io.Platform_ImeUserData = io.Platform_ImeUserData;
+		inner_io.Platform_OpenInShellFn = io.Platform_OpenInShellFn;
+		inner_io.Platform_OpenInShellUserData = io.Platform_OpenInShellUserData;
+		inner_io.Platform_LocaleDecimalPoint = io.Platform_LocaleDecimalPoint;
+
+		// That won't render as the frame is not passed to OpenGL
+		ImGui::Render();
 	}
 
 	/**
