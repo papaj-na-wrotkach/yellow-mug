@@ -250,6 +250,8 @@ private:
 		inner_io.Platform_OpenInShellUserData = io.Platform_OpenInShellUserData;
 		inner_io.Platform_LocaleDecimalPoint = io.Platform_LocaleDecimalPoint;
 
+		ImGui::EndFrame();
+		ImGui::UpdatePlatformWindows();
 		// That won't render as the frame is not passed to OpenGL
 		ImGui::Render();
 	}
