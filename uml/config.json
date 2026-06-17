@@ -1,0 +1,10 @@
+{
+  "look": "neo",
+  "elk": {
+    "cycleBreakingStrategy": "INTERACTIVE" 
+  },
+  "class": {
+    "defaultRenderer": "elk",
+    "hideEmptyMembersBox": true
+  }
+}

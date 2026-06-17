@@ -1,0 +1,228 @@
+---
+config:
+  layout: elk
+---
+classDiagram
+direction RL
+    class App {
+        -ImGuiContext* m_context
+        -GLFWwindow* m_window
+        -ImNodeFlow m_graph
+        +App()
+        +~App()
+        +run() void
+        -setup_context_menu() void
+        -init_window() void
+        -init_imgui() void
+        -init_imnodeflow() void
+        -cleanup() void
+    }
+    namespace Core {
+        class Extent2D {
+            <<struct>>
+            +size_t width
+            +size_t height
+            +operator==(Extent2D) bool
+            +area() size_t
+            +empty() bool
+            +aspect_ratio() double
+            +operator+(Extent2D) Extent2D
+            +operator-(Extent2D) Extent2D
+            +operator+=(Extent2D) Extent2D&
+            +operator-=(Extent2D) Extent2D&
+        }
+
+        class Frame {
+            -Extent2D m_extent
+            -vector~uint8_t~ m_pixels
+            +Frame()
+            +Frame(Extent2D)
+            +Frame(Extent2D, span~uint8_t~)
+            +clone() Frame
+            +dimensions() Extent2D
+            +pixel_view() auto
+            +bytes() span~uint8_t~
+        }
+    }
+
+    namespace External {
+        class BaseNode["ImFlow::BaseNode"] {
+            <<external>>
+        }
+    }
+
+    namespace Nodes {
+        class ProcessorNode {
+            <<abstract>>
+            #Processor m_processor
+            +ProcessorNode(Processor)
+            +draw()* void
+            #draw_error() void
+        }
+
+        class TargetNode {
+            -GLuint m_texture_id
+            -GLuint m_checkerboard_texture_id
+            -GLuint m_last_sampler
+            -shared_ptr~Frame~ m_displayed
+            -ImGuiImage_State m_zoom_state
+            -bool m_viewer_open
+            -bool m_show_checkerboard
+            -ImGuiContext* m_outer_context
+            +TargetNode()
+            +~TargetNode()
+            +draw() void
+            +draw_viewer() void
+            +set_outer_context(ImGuiContext*) void
+            -upload_texture(Frame) void
+            -init_checkerboard() void
+        }
+
+        class SourceProcessorNode {
+            -string m_path_buffer
+            +SourceProcessorNode()
+            +draw() void
+        }
+        class BlurProcessorNode {
+            +BlurProcessorNode()
+            +draw() void
+        }
+        class CropProcessorNode {
+            +CropProcessorNode()
+            +draw() void
+        }
+        class GrayscaleProcessorNode {
+            +GrayscaleProcessorNode()
+            +draw() void
+        }
+        class InvertProcessorNode {
+            +InvertProcessorNode()
+            +draw() void
+        }
+        class MaskBlendProcessorNode {
+            +MaskBlendProcessorNode()
+            +draw() void
+        }
+    }
+
+    namespace Processors {
+        class Processor {
+            <<abstract>>
+            -string m_last_error
+            +~Processor()
+            +last_error() string_view
+            +operator()(span)* shared_ptr~Frame~
+            +input_count()* size_t
+            +output_count()* size_t
+            +label()* string_view
+            #set_error(string) void
+            #clear_error() void
+        }
+
+        class SourceProcessor {
+            #shared_ptr~Frame~ m_loaded
+            #filesystem_path m_path
+            +operator()(span~shared_ptr~Frame~~) shared_ptr~Frame~
+            +input_count() size_t
+            +output_count() size_t
+            +label() string_view
+            +load_file(filesystem_path) void
+        }
+        class BlurProcessor {
+            #int m_radius
+            +operator()(span~shared_ptr~Frame~~) shared_ptr~Frame~
+            +input_count() size_t
+            +output_count() size_t
+            +label() string_view
+        }
+        class CropProcessor {
+            #int m_top
+            #int m_left
+            #int m_right
+            #int m_bottom
+            +operator()(span~shared_ptr~Frame~~) shared_ptr~Frame~
+            +input_count() size_t
+            +output_count() size_t
+            +label() string_view
+        }
+        class GrayscaleMethod {
+            <<enumeration>>
+            Luminosity
+            Average
+            Lightness
+        }
+        class GrayscaleProcessor {
+            #GrayscaleMethod m_method
+            +operator()(span~shared_ptr~Frame~~) shared_ptr~Frame~
+            +input_count() size_t
+            +output_count() size_t
+            +label() string_view
+        }
+        class InvertProcessor {
+            #bool m_invert_r
+            #bool m_invert_g
+            #bool m_invert_b
+            #bool m_invert_a
+            +operator()(span~shared_ptr~Frame~~) shared_ptr~Frame~
+            +input_count() size_t
+            +output_count() size_t
+            +label() string_view
+        }
+        class MaskChannel {
+            <<enumeration>>
+            Red
+            Green
+            Blue
+            Alpha
+        }
+        class MaskBlendProcessor {
+            #MaskChannel m_mask_channel
+            +operator()(span~shared_ptr~Frame~~) shared_ptr~Frame~
+            +input_count() size_t
+            +output_count() size_t
+            +label() string_view
+        }
+    }
+
+    %% Relationships
+
+    Frame *-- Extent2D
+
+    ProcessorNode --|> BaseNode
+    ProcessorNode o-- Processor
+    TargetNode --|> BaseNode
+    TargetNode o-- Frame
+
+    SourceProcessor --|> Processor
+    SourceProcessorNode --|> SourceProcessor
+    SourceProcessorNode --|> ProcessorNode
+
+    BlurProcessor --|> Processor
+    BlurProcessorNode --|> BlurProcessor
+    BlurProcessorNode --|> ProcessorNode
+
+    CropProcessor --|> Processor
+    CropProcessorNode --|> CropProcessor
+    CropProcessorNode --|> ProcessorNode
+
+    GrayscaleProcessor --|> Processor
+    GrayscaleProcessor *-- GrayscaleMethod
+    GrayscaleProcessorNode --|> GrayscaleProcessor
+    GrayscaleProcessorNode --|> ProcessorNode
+
+    InvertProcessor --|> Processor
+    InvertProcessorNode --|> InvertProcessor
+    InvertProcessorNode --|> ProcessorNode
+
+    MaskBlendProcessor --|> Processor
+    MaskBlendProcessor *-- MaskChannel
+    MaskBlendProcessorNode --|> MaskBlendProcessor
+    MaskBlendProcessorNode --|> ProcessorNode
+
+    App ..> BlurProcessorNode : creates
+    App ..> CropProcessorNode : creates
+    App ..> GrayscaleProcessorNode : creates
+    App ..> InvertProcessorNode : creates
+    App ..> MaskBlendProcessorNode : creates
+    App ..> SourceProcessorNode : creates
+    App ..> TargetNode : creates
